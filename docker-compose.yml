@@ -1,0 +1,58 @@
+# BiliDL Pro · 带 WebUI 的 B站 + YouTube 视频 / 动态图文下载器（追更）
+#
+#   部署（在项目根目录，也就是本文件所在目录）：
+#     docker compose up -d --build          # 或 docker-compose up -d --build
+#   然后打开：
+#     http://<这台 NAS / 服务器的 IP>:2917
+#
+# 说明：
+#   * 端口 2917，network_mode: bridge，容器名 bilidl-pro；
+#   * 宿主机下载目录通过 BILIDL_HOST_DOWNLOAD 指定（见 .env），
+#     挂到容器内 /download：视频默认存 /download，图文默认存 /download/图文，
+#     两者都可以在「下载设置」里再分别改；
+#   * 第一次构建会拉 python:3.12-slim、ffmpeg、nodejs；之后重建只会重跑最后几层。
+#   * nodejs 是 yt-dlp 解析 YouTube 高清格式的 JS 运行时（镜像里已装，不用管）；
+#     yt-dlp 本体与 yt-dlp-ejs 由 requirements.txt 的 yt-dlp[default] 自动装上。
+#   * 容器里填代理时注意：127.0.0.1 指的是容器自己。代理跑在 NAS/宿主机上时，
+#     要么填宿主机的局域网 IP（如 http://192.168.1.50:7890），
+#     要么填 http://host.docker.internal:7890（下面已经加了 host-gateway 映射）。
+services:
+  bilidl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        # 国内镜像源（想换回官方源就改成 deb.debian.org / https://pypi.org/simple）
+        DEBIAN_MIRROR: mirrors.tuna.tsinghua.edu.cn
+        PIP_INDEX: https://pypi.tuna.tsinghua.edu.cn/simple
+    image: bilidl-pro:2.3.0
+    container_name: bilidl-pro
+    restart: unless-stopped
+    network_mode: bridge
+    # 让容器里的 host.docker.internal 指向宿主机（Linux 需要显式映射），
+    # 这样「设置 → 代理」里可以直接填 http://host.docker.internal:7890
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      # 左边是宿主机端口，右边是容器内固定端口
+      - "${BILIDL_PORT:-2917}:2917"
+    environment:
+      TZ: Asia/Shanghai
+      BILIDL_PORT: "2917"
+      BILIDL_DOWNLOAD_DIR: /download
+      BILIDL_DATA_DIR: /app/data
+    volumes:
+      # 左侧是宿主机真实下载目录（改 .env 里的 BILIDL_HOST_DOWNLOAD），右侧固定为容器内 /download
+      - "${BILIDL_HOST_DOWNLOAD:-./downloads}:/download"
+      # 设置 / Cookie / 临时文件（cookie.txt 只存在这里，注意备份）
+      - ./data:/app/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2917/api/health', timeout=4)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

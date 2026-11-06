@@ -1,0 +1,6 @@
+httpx>=0.27,<0.29
+qrcode>=7.4,<9
+# YouTube 支持（解析 / 下载 / 字幕）：yt-dlp + 官方默认附加依赖（含 yt-dlp-ejs 等）
+yt-dlp[default]>=2025.6.25
+# YouTube 的 JS challenge 求解：deno 比 node 兼容性更好（yt-dlp-ejs 官方首推）
+deno>=2.4
