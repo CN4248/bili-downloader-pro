@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>BiliDL-PRO · B站 / YouTube 下载</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">Bili<span>DL</span><b class="pro">PRO</b><small>B站 / YouTube · 视频 · 图文</small></div>
+    <nav class="nav" id="nav">
+      <button data-view="download" class="active"><span class="ico">⬇</span>链接下载</button>
+      <button data-view="space"><span class="ico">👤</span>UP主批量</button>
+      <button data-view="subs"><span class="ico">🕒</span>定时追更</button>
+      <button data-view="tasks"><span class="ico">📋</span>任务队列</button>
+      <button data-view="account"><span class="ico">🔑</span>账号登录</button>
+      <button data-view="settings"><span class="ico">⚙</span>下载设置</button>
+    </nav>
+    <div class="side-foot">
+      <div><span class="dot" id="sideLoginDot"></span> <span id="sideLogin">未登录</span></div>
+      <div>v<span id="sideVersion">2.3.0</span> · 端口 2197 · B站 / YouTube</div>
+      <div class="theme-mini" id="themeMini" title="快速切换主题"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- ======================= 链接下载 ======================= -->
+    <section class="view active" id="view-download">
+      <div class="page-head">
+        <div>
+          <h1>链接下载</h1>
+          <p>支持 B站视频 / 动态 / 专栏图文 / b23.tv 短链，以及 YouTube 视频 / 频道 / 播放列表；一次可粘贴多条链接，每行一条</p>
+        </div>
+        <div class="chips" id="headChips"></div>
+      </div>
+
+      <div class="card" id="guideCard">
+        <h2>三步开始 <span class="hint">第一次用看这里，三十秒上手</span>
+          <span class="grow"></span>
+          <button class="btn ghost sm" id="guideClose">知道了</button>
+        </h2>
+        <div class="guide">
+          <div class="step"><b><i>1</i>粘贴链接</b><p>B站视频 / 合集 / 动态 / 专栏 / b23.tv 短链，YouTube 视频 / 频道 / 播放列表都行，一行一个，可以一次贴很多条。</p></div>
+          <div class="step"><b><i>2</i>挑要下的</b><p>点「解析链接」后勾分集；默认全选分集，合集里其它视频默认不勾。</p></div>
+          <div class="step"><b><i>3</i>开始下载</b><p>点「下载选中」，进度在「任务队列」里看；清晰度和目录在「下载设置」改。</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field" style="margin-bottom:10px">
+          <textarea id="linksInput" placeholder="https://www.bilibili.com/video/BV1xx411c7mD/
+https://www.bilibili.com/video/BV1ab411c7ef/
+https://b23.tv/xxxxxxx
+https://space.bilibili.com/10000/upload/video
+https://www.youtube.com/watch?v=XXXXXXXXXXX
+https://www.youtube.com/@ExampleChannel"></textarea>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="parseBtn">解析链接</button>
+          <button class="btn ghost" id="clearLinksBtn">清空</button>
+          <span class="grow"></span>
+          <label class="muted">清晰度</label>
+          <select id="qualitySelect" style="width:150px"></select>
+        </div>
+      </div>
+
+      <div id="parseResults"></div>
+
+      <div class="card" id="downloadBar" style="display:none">
+        <div class="rowline">
+          <div>
+            <b id="pickSummary">已选择 0 项</b>
+            <div class="muted">视频分集 / 合集分集 / 图文作品都会按勾选下载；视频与图文分别保存到各自目录</div>
+          </div>
+          <div class="row">
+            <button class="btn ghost" id="pickAllBtn">全选</button>
+            <button class="btn ghost" id="pickNoneBtn">全不选</button>
+            <button class="btn primary" id="startDownloadBtn">开始下载</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= UP 主批量 ======================= -->
+    <section class="view" id="view-space">
+      <div class="page-head">
+        <div>
+          <h1>UP主批量下载</h1>
+          <p>检索 UP 空间内全部视频与图文作品，检索完成后再自行勾选下载；全程带随机延迟，避免触发风控</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="grow">
+            <input type="text" id="spaceInput" placeholder="UP主 UID 或空间链接，例如 2 或 https://space.bilibili.com/2/upload/opus" />
+          </div>
+          <label class="muted"><input type="checkbox" id="scanVideo" checked /> 视频</label>
+          <label class="muted"><input type="checkbox" id="scanOpus" checked /> 图文</label>
+          <button class="btn primary" id="scanBtn">检索全部作品</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="grow">
+            <input type="text" id="spaceQ" placeholder="按标题搜索：输入关键词筛选检索结果（多个关键词用空格分隔，需全部命中）" />
+          </div>
+          <button class="btn sm ghost" id="spaceQAll">全选匹配</button>
+          <button class="btn sm ghost" id="spaceQClear">清除筛选</button>
+          <span class="muted" id="spaceQInfo"></span>
+        </div>
+        <div class="muted" style="margin-top:10px">
+          检索会按「设置」里的扫描间隔逐个请求（默认 1.6 秒/页），作品较多时需要几分钟；中途可随时取消。
+          筛选只在已检索到的结果里按标题匹配，不会再向 B站 发请求（所以不会触发风控）。
+        </div>
+      </div>
+
+      <div id="scanStatus"></div>
+
+      <div class="card" id="videoPanel" style="display:none">
+        <h2>视频作品 <span class="hint" id="videoCount"></span></h2>
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn sm ghost" data-selall="video">全选</button>
+          <button class="btn sm ghost" data-selnone="video">全不选</button>
+          <span class="grow"></span>
+          <button class="btn sm primary" data-download="video">下载选中视频</button>
+        </div>
+        <div class="grid" id="videoGrid"></div>
+      </div>
+
+      <div class="card" id="opusPanel" style="display:none">
+        <h2>图文作品 <span class="hint" id="opusCount"></span></h2>
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn sm ghost" data-selall="opus">全选</button>
+          <button class="btn sm ghost" data-selnone="opus">全不选</button>
+          <span class="grow"></span>
+          <button class="btn sm primary" data-download="opus">下载选中图文</button>
+        </div>
+        <div class="grid" id="opusGrid"></div>
+      </div>
+    </section>
+
+    <!-- ======================= 定时追更 ======================= -->
+    <section class="view" id="view-subs">
+      <div class="page-head">
+        <div>
+          <h1>定时追更</h1>
+          <p>定时扫描选定的 UP 主，从起点作品（含它本身）开始往后下载新视频 / 新图文；串行扫描 + 随机延迟，绝不同时狂刷</p>
+        </div>
+        <div class="chips">
+          <span class="chip" id="subsStateChip">未启用</span>
+          <span class="chip" id="subsNextChip"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>总开关 <span class="hint">关掉之后所有订阅都不会自动扫描</span></h2>
+        <div class="row">
+          <label class="muted"><input type="checkbox" id="subsEnabled" /> 开启定时扫描</label>
+          <div class="field" style="max-width:170px">
+            <label>默认扫描间隔（分钟）</label>
+            <input type="number" id="subsInterval" min="2" max="10080" step="1" />
+          </div>
+          <div class="field" style="max-width:150px">
+            <label>单轮最多下载</label>
+            <input type="number" id="subsMaxNew" min="1" max="200" step="1" />
+          </div>
+          <div class="field" style="max-width:170px">
+            <label>两次扫描最小空档（秒）</label>
+            <input type="number" id="subsMinGap" min="30" max="3600" step="10" />
+          </div>
+          <button class="btn primary" id="subsSaveCfg">保存</button>
+        </div>
+        <div class="tip">间隔越短越容易触发风控，建议 30 分钟以上；任何时刻只有一个订阅在扫描，其它订阅排队等待。</div>
+      </div>
+
+      <div class="card">
+        <h2>添加订阅 <span class="hint">每个订阅可以有自己的下载目录与扫描间隔</span></h2>
+        <div class="row">
+          <select id="subsKind" title="订阅类型" style="width:150px">
+            <option value="up" selected>UP 主投稿</option>
+            <option value="fav">收藏夹</option>
+            <option value="bangumi">番剧 / 影视</option>
+            <option value="toview">稍后再看</option>
+            <option value="lists">合集</option>
+            <option value="readlist">文集</option>
+            <option value="youtube">YouTube 频道</option>
+          </select>
+          <div class="grow">
+            <input type="text" id="subsMid" placeholder="UP主 UID 或空间链接，例如 2 或 https://space.bilibili.com/2/upload/opus" />
+          </div>
+          <label class="muted"><input type="checkbox" id="subsVideoOn" checked /> 追视频</label>
+          <label class="muted"><input type="checkbox" id="subsOpusOn" checked /> 追图文</label>
+          <button class="btn primary" id="subsAddBtn">添加订阅</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field grow">
+            <label>视频下载目录（留空用全局设置）</label>
+            <input type="text" id="subsVideoDir" placeholder="例如 /download/video/某UP主/视频" />
+          </div>
+          <div class="field grow">
+            <label>图文下载目录（留空用全局设置）</label>
+            <input type="text" id="subsOpusDir" placeholder="例如 /download/图文/某UP主/图文" />
+          </div>
+          <div class="field" style="max-width:170px">
+            <label>单独间隔（分钟，0=默认）</label>
+            <input type="number" id="subsOwnInterval" min="0" max="10080" step="1" value="0" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="field grow">
+            <label>视频重命名规则（留空用全局设置）</label>
+            <textarea id="subsVideoTpl" rows="2" placeholder="例如 &lt;video_title&gt;-&lt;video_episode&gt;.&lt;ext&gt;"></textarea>
+            <div class="var-list" id="subsVideoVars"></div>
+          </div>
+          <div class="field grow">
+            <label>图文 / 文集重命名规则（留空用全局设置）</label>
+            <textarea id="subsOpusTpl" rows="2" placeholder="例如 &lt;readlist_title&gt;/&lt;opus_title&gt;/&lt;opus_id&gt;-&lt;opus_order&gt;.&lt;ext&gt;"></textarea>
+            <div class="var-list" id="subsOpusVars"></div>
+          </div>
+        </div>
+        <div class="tip">
+          加好之后点卡片上的「视频起点 / 图文起点」，从检索结果里选一部作品当起点：<b>从这一部开始（含它本身）</b>往新的方向自动下载，更早的作品不下。
+          不选起点时，第一次扫描只建立基线（现有作品不下载），之后只下新发的。<br>
+          <b>合集</b>：把合集链接（<code>https://space.bilibili.com/&lt;UID&gt;/lists/&lt;合集ID&gt;</code>）粘进来即可，合集里每个视频的<b>全部分P</b>都会一起下；
+          不设起点时从合集里最旧的一部开始补全，之后自动追新。
+        </div>
+      </div>
+
+      <div class="card" id="subToolbar" style="display:none">
+        <div class="rowline" style="gap:10px;flex-wrap:wrap">
+          <div class="chips" id="subFilterRow"></div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <label class="muted"><input type="checkbox" id="subSelAll" /> 全选当前</label>
+            <span class="muted" id="subSelCount">已选 0 个</span>
+            <button class="btn sm ghost" id="subBatchEnable">批量开启</button>
+            <button class="btn sm ghost" id="subBatchDisable">批量关闭</button>
+            <button class="btn sm ghost" id="subBatchDelete" style="color:var(--red)">批量删除</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="subPick"></div>
+      <div id="subList"></div>
+    </section>
+
+    <!-- ======================= 任务队列 ======================= -->
+    <section class="view" id="view-tasks">
+      <div class="page-head">
+        <div><h1>任务队列</h1><p>下载进度、速度与失败原因实时刷新</p></div>
+        <div class="chips">
+          <span class="chip" id="cooldownChip" style="display:none"></span>
+          <button class="btn sm ghost" id="pauseAllBtn" title="暂停所有排队中和下载中的任务">全部暂停</button>
+          <button class="btn sm ghost" id="resumeAllBtn" title="继续所有已暂停的任务">全部开始</button>
+          <button class="btn sm ghost" id="cancelAllBtn" title="取消所有任务，并把它们从任务队列里删除">取消全部任务</button>
+          <button class="btn sm ghost" id="retryFailedBtn">重试失败</button>
+          <button class="btn sm ghost" id="clearTasksBtn">清除已完成</button>
+        </div>
+      </div>
+      <div class="stat-row" id="statRow"></div>
+      <div class="task-tools" id="taskTools">
+        <label class="tick tick-all" title="选中 / 取消选中全部任务">
+          <input type="checkbox" id="selectAllTasks" />
+          <span>全选</span>
+        </label>
+        <span class="sel-count" id="selCount">已选 0 项</span>
+        <span class="grow"></span>
+        <button class="btn sm ghost" id="pauseSelBtn" disabled title="暂停选中的任务">暂停选中</button>
+        <button class="btn sm ghost" id="resumeSelBtn" disabled title="继续选中的已暂停任务">开始选中</button>
+        <button class="btn sm ghost" id="cancelSelBtn" disabled title="取消选中的任务">取消选中</button>
+      </div>
+      <div class="card" style="padding:0">
+        <div id="taskList"><div class="empty">还没有下载任务</div></div>
+      </div>
+    </section>
+
+    <!-- ======================= 账号登录 ======================= -->
+    <section class="view" id="view-account">
+      <div class="page-head">
+        <div><h1>账号登录</h1><p>登录后可下载 1080P60 / 4K 等高清流，并提高接口稳定性</p></div>
+        <div class="chips"><span class="chip" id="userChip">未登录</span></div>
+      </div>
+
+      <div class="card">
+        <h2>B站 App 扫码授权登录</h2>
+        <div class="login-wrap">
+          <div class="qr-box" id="qrBox"><div class="placeholder">点击「获取二维码」，用 B站 手机客户端扫码</div></div>
+          <div class="qr-side">
+            <p class="muted" id="qrStatus">尚未获取二维码。</p>
+            <div class="row">
+              <button class="btn primary" id="qrBtn">获取二维码</button>
+              <button class="btn ghost" id="qrRefreshBtn">刷新</button>
+            </div>
+            <p class="muted" style="margin-top:12px">
+              扫码确认后会自动保存登录状态（只保存在本机 data/cookie.txt）。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>手动输入 Cookie</h2>
+        <div class="field">
+          <textarea id="cookieInput" placeholder="SESSDATA=xxxxxx; bili_jct=xxxxxx; DedeUserID=xxxxxx"></textarea>
+          <div class="tip">浏览器登录 B站后按 F12 → Network → 任意请求的 Request Headers 里的 Cookie 整段粘贴即可；也支持插件导出的 JSON。</div>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="cookieLoginBtn">使用 Cookie 登录</button>
+          <button class="btn ghost" id="logoutBtn">退出登录</button>
+        </div>
+      </div>
+
+      <div class="card" id="userCard" style="display:none">
+        <h2>当前账号</h2>
+        <div class="user-card">
+          <img class="avatar" id="userAvatar" alt="" />
+          <div>
+            <div><b id="userName"></b></div>
+            <div class="muted" id="userMeta"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 设置 ======================= -->
+    <section class="view" id="view-settings">
+      <div class="page-head">
+        <div><h1>下载设置</h1><p>下载目录、清晰度、重命名规则与防风控节流参数</p></div>
+        <div class="chips"><button class="btn primary" id="saveSettingsBtn">保存设置</button></div>
+      </div>
+
+      <div class="card">
+        <h2>界面主题 <span class="hint">七套配色，点一下立刻切换，选择会记住</span></h2>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
+      <div class="card">
+        <h2>下载目录 <span class="hint">视频与图文可以分别设置</span></h2>
+        <div class="field">
+          <label>视频下载目录</label>
+          <input type="text" id="videoDir" placeholder="/download/video" />
+        </div>
+        <div class="field">
+          <label>动态 / 专栏图文下载目录</label>
+          <input type="text" id="opusDir" placeholder="/download/video" />
+        </div>
+        <div class="row">
+          <label class="muted">默认清晰度</label>
+          <select id="qualitySetting" style="width:160px"></select>
+          <span class="muted" id="ffmpegHint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>视频重命名规则</h2>
+        <div class="field">
+          <textarea id="videoTemplate" rows="3"></textarea>
+          <div class="tip">可用变量（点击插入到光标处）。模板里写 <b>/</b> 会在下载目录下新建子文件夹，例如 <code>&lt;opus_author&gt;/&lt;opus_title&gt;-&lt;opus_id&gt;-&lt;opus_order&gt;.&lt;ext&gt;</code> → 下载目录/作者名/文件。</div>
+          <div class="var-list" id="videoVars"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>动态 / 专栏图文重命名规则</h2>
+        <div class="field">
+          <textarea id="opusTemplate" rows="3"></textarea>
+          <div class="tip">可用变量（点击插入到光标处）。模板里写 <b>/</b> 会在下载目录下新建子文件夹，例如 <code>&lt;opus_author&gt;/&lt;opus_title&gt;-&lt;opus_id&gt;-&lt;opus_order&gt;.&lt;ext&gt;</code> → 下载目录/作者名/文件。</div>
+          <div class="var-list" id="opusVars"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>文集重命名规则</h2>
+        <div class="field">
+          <textarea id="readlistTemplate" rows="3"></textarea>
+          <div class="tip">文集里的文章用这套规则（普通图文仍用上面的规则）。可用变量（点击插入到光标处）。模板里写 <b>/</b> 会建子文件夹，默认就是「文集标题/文章序号-文章标题/文章id-图片序号」。</div>
+          <div class="var-list" id="readlistVars"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>默认选择行为</h2>
+        <div class="field">
+          <label><input type="checkbox" id="defaultAllPages" /> 解析视频时默认勾选全部分集</label>
+          <label><input type="checkbox" id="defaultSeasonAll" /> 解析视频时默认勾选整个合集</label>
+          <label><input type="checkbox" id="skipExisting" /> 已下载过的同名文件自动跳过</label>
+          <div class="tip">默认：全部分集勾选；合集内其它视频不勾选。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>下载哪些文件 <span class="hint">可多选；默认下载正常有声视频</span></h2>
+        <div class="field">
+          <label><input type="checkbox" id="exAudioOnly" /> 只下载纯音频（无画面）</label>
+          <div class="row" style="margin-left:26px">
+            <label class="muted">纯音频格式</label>
+            <select id="audioFormat" style="width:auto">
+              <option value="m4a">m4a · AAC 原音轨（音质最好，主流播放器）</option>
+              <option value="mp3">mp3 · 转码 192k（老电视 / 车机 / 部分媒体库没有 AAC 解码时选这个）</option>
+            </select>
+          </div>
+          <label><input type="checkbox" id="exVideoOnly" /> 只下载无声视频（mp4，无音轨）</label>
+          <label><input type="checkbox" id="exSubtitle" /> 额外下载字幕 SRT 文件</label>
+          <label><input type="checkbox" id="exDanmaku" /> 额外下载弹幕 SRT 文件</label>
+          <label><input type="checkbox" id="exCover" /> 额外下载封面图片（jpg）</label>
+          <label><input type="checkbox" id="exNfo" /> 额外下载 NFO 信息文件</label>
+          <div class="tip">全部不勾选时下载正常的有声视频。附加文件（字幕/弹幕/封面/NFO）与所选视频一起下载，文件名沿用“视频重命名规则”（只把扩展名换成 srt/jpg/nfo/m4a）；纯音频与无声视频可以同时勾选，会各下一份文件（<code>.m4a</code>/<code>.mp3</code> 与 <code>-mute.mp4</code>）。<b>放出来没声音</b>时先把「纯音频格式」换成 mp3：老电视、车机、部分媒体库只认 MP3。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>网络自检 <span class="hint">Docker / NAS 部署连不上 B站 时先点这里</span></h2>
+        <div class="row" style="align-items:flex-start">
+          <button class="btn" id="diagBtn">运行网络诊断</button>
+          <pre id="diagOut" class="muted" style="flex:1;min-width:0;white-space:pre-wrap;margin:0;font-size:12px"></pre>
+        </div>
+        <p class="hint">会依次测试 B站 主接口、Passport、视频 CDN，以及两个下载目录是否可写。</p>
+      </div>
+
+      <div class="card">
+        <h2>防风控与性能 <span class="hint">越慢越安全</span></h2>
+        <div class="row">
+          <div class="field" style="flex:1;min-width:150px">
+            <label>接口间隔（秒）</label>
+            <input type="number" id="apiInterval" min="0.5" max="10" step="0.1" />
+          </div>
+          <div class="field" style="flex:1;min-width:150px">
+            <label>空间检索间隔（秒）</label>
+            <input type="number" id="scanInterval" min="0.8" max="15" step="0.1" />
+          </div>
+          <div class="field" style="flex:1;min-width:150px">
+            <label>任务间隔（秒）</label>
+            <input type="number" id="fileInterval" min="0" max="30" step="0.1" />
+          </div>
+          <div class="field" style="flex:1;min-width:150px">
+            <label>并发任务数</label>
+            <input type="number" id="concurrency" min="1" max="4" step="1" />
+          </div>
+          <div class="field" style="flex:1;min-width:150px">
+            <label>单次检索最大页数</label>
+            <input type="number" id="maxPages" min="1" max="200" step="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>代理地址（可选，http://127.0.0.1:7890）<span class="muted">（国内直连 YouTube 必须填；B站 通常不需要）</span></label>
+          <input type="text" id="proxy" placeholder="留空表示直连，例如 http://192.168.1.2:7890" />
+          <div class="tip">
+            <label style="display:inline-flex;align-items:center;gap:6px;margin-right:18px">
+              <input type="checkbox" id="useProxyBili" style="width:16px;height:16px" /> B站 走代理
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px">
+              <input type="checkbox" id="useProxyYoutube" style="width:16px;height:16px" /> YouTube 走代理
+            </label>
+            <br>两个都勾 = 两边都走代理；只勾 YouTube = 只有 YouTube 走代理（B站 继续直连，更快更稳）。
+          </div>
+        </div>
+        <div class="field">
+          <label>YouTube 专用代理（可选）<span class="muted">（留空就用上面的地址；想给 YouTube 单独一条线路时填这里）</span></label>
+          <input type="text" id="proxyYoutube" placeholder="例如 http://192.168.1.2:7891，留空表示用上面的代理" />
+        </div>
+        <div class="field">
+          <label>YouTube Cookie（可选）<span class="muted">（年龄限制、会员专属或需要登录验证的视频才要填）</span></label>
+          <textarea id="youtubeCookies" rows="3" placeholder="粘贴浏览器导出的 YouTube Cookie（Netscape 格式或 name=value; 串）"></textarea>
+          <div class="tip">不填也能下载绝大多数公开视频；填了会保存在 data/youtube-cookies.txt，不会外发。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 全局任务进度条：刷新页面后仍然能看到正在下载的任务 -->
+  <div class="mini-tasks" id="miniTasks" style="display:none">
+    <span class="mt-dot"></span>
+    <span class="mt-text" id="mtText">正在下载</span>
+    <div class="mt-bar"><i id="mtBar" style="width:0%"></i></div>
+    <button class="btn sm ghost" id="mtGo">查看</button>
+    <button class="mt-x" id="mtHide" title="收起">×</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>
