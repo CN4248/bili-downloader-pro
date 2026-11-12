@@ -1,0 +1,28 @@
+# 运行时数据（Cookie / 设置 / 订阅 / 队列，绝对不要提交）
+data/
+downloads/
+
+# 构建产物
+dist/
+build/
+*.exe
+*.apk
+*.jks
+*.keystore
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# 本地配置与日志
+.env
+*.log
+
+# 编辑器 / 系统
+node_modules/
+.DS_Store
+.idea/
+.vscode/

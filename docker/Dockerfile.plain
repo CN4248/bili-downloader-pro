@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# BiliDL · 无 BuildKit 版 Dockerfile（老引擎 / BuildKit 被关掉时用这个）
+#
+# 与 docker/Dockerfile 的唯一区别：去掉了 RUN --mount=type=cache 缓存挂载，
+# 因为旧版 docker（<18.09 或 DOCKER_BUILDKIT=0）会报：
+#   the --mount option requires BuildKit
+#
+# 用法（在项目根目录）：
+#   docker build -f docker/Dockerfile.plain -t bilidl-pro:2.2.12 .
+#   docker run -d --name bilidl-pro -p 2197:2197 --network bridge \
+#     --add-host host.docker.internal:host-gateway \
+#     -v "/volume1/你的下载目录:/download" -v "$PWD/data:/app/data" bilidl-pro:2.2.12
+# ---------------------------------------------------------------------------
+FROM python:3.12-slim-trixie
+
+ARG DEBIAN_MIRROR=mirrors.tuna.tsinghua.edu.cn
+ARG PIP_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    BILIDL_DOWNLOAD_DIR=/download \
+    BILIDL_DATA_DIR=/app/data \
+    BILIDL_PORT=2197 \
+    TZ=Asia/Shanghai
+
+WORKDIR /app
+
+RUN set -eux; \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i "s|deb.debian.org|${DEBIAN_MIRROR}|g; s|security.debian.org|${DEBIAN_MIRROR}|g" \
+            /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    if [ -f /etc/apt/sources.list ]; then \
+        sed -i "s|deb.debian.org|${DEBIAN_MIRROR}|g; s|security.debian.org|${DEBIAN_MIRROR}|g" \
+            /etc/apt/sources.list; \
+    fi
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install -i "${PIP_INDEX}" -r requirements.txt
+
+COPY bilidl ./bilidl
+COPY web ./web
+
+RUN mkdir -p /app/data /download
+
+VOLUME ["/download"]
+EXPOSE 2197
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2197/api/health', timeout=4)"
+
+CMD ["python", "-m", "bilidl", "--host", "0.0.0.0", "--port", "2197"]

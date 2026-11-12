@@ -1,0 +1,26 @@
+# 构建上下文瘦身：.venv(约110MB) 与 dist(约96MB) 绝不能进上下文，
+# 否则 NAS 上每次构建都要先把几百 MB 传给 docker daemon，慢十倍。
+.venv/
+venv/
+dist/
+build/
+data/
+docs/
+tests/
+android/
+tampermonkey/
+probe/
+shots/
+.git/
+.github/
+**/__pycache__/
+**/*.pyc
+*.zip
+*.apk
+*.exe
+*.png
+*.ico
+*.keystore
+*.log
+*.md
+downloads/

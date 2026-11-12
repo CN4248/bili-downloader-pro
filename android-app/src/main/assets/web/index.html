@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1118">
+<title>BiliDL 手机版</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>BiliDL</h1>
+  <span class="hint" style="margin:0;font-size:12px">手机离线版</span>
+  <span class="chip" id="loginChip">未登录</span>
+</header>
+<nav>
+  <button data-tab="dl" class="active">链接下载</button>
+  <button data-tab="up">UP 主批量</button>
+  <button data-tab="tasks">任务</button>
+  <button data-tab="login">账号</button>
+  <button data-tab="settings">设置</button>
+</nav>
+<main>
+  <section id="tab-dl" class="active">
+    <div class="card">
+      <h2>粘贴链接（每行一个，支持 b23.tv 短链）</h2>
+      <textarea id="links" placeholder="https://www.bilibili.com/video/BV1ppvFeDERi/
+https://www.bilibili.com/video/BV1sipCemE1d/
+https://space.bilibili.com/70707146/upload/video"></textarea>
+      <div class="row">
+        <button class="primary" id="parseBtn">解析</button>
+        <button class="ghost" id="clearBtn">清空</button>
+        <span class="hint" style="margin:0 0 0 auto">清晰度</span>
+        <select id="quality" style="width:120px"></select>
+      </div>
+      <div class="hint">未登录只能下 360P/480P；登录后可达 1080P（单文件 MP4）。</div>
+    </div>
+    <div id="parseResult"></div>
+    <div class="card" id="dlActions" style="display:none">
+      <button class="primary" id="startBtn" style="width:100%">开始下载选中的作品</button>
+      <div class="hint">视频与图文会按各自的目录和命名规则保存；任务串行执行，间隔 0.8s 以上。</div>
+    </div>
+  </section>
+
+  <section id="tab-up">
+    <div class="card">
+      <h2>检索 UP 主全部作品</h2>
+      <div class="row">
+        <input type="text" id="upMid" placeholder="UP 主 UID 或空间链接" style="flex:1;min-width:160px">
+        <button class="primary" id="scanBtn">检索</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input type="text" id="upQ" placeholder="按标题搜索，如：分享 图片（空格分隔多个词）" style="flex:1;min-width:160px">
+        <button class="ghost tiny" id="upQAll">全选匹配</button>
+      </div>
+      <div class="hint">串行翻页，每页间隔约 1.6s，作品多时需要几分钟；检索完成后再挑要下载的。
+        标题搜索只在已检索结果里筛选，不会再请求 B站。</div>
+    </div>
+    <div id="scanBox"></div>
+  </section>
+
+  <section id="tab-tasks">
+    <div class="card">
+      <h2>任务队列 <button class="tiny" id="refreshTasks" style="float:right">刷新</button>
+        <button class="tiny" id="cancelAll" style="float:right;margin-right:6px">取消全部</button>
+        <button class="tiny" id="retryFailed" style="float:right;margin-right:6px">重试失败</button>
+        <button class="tiny" id="clearDone" style="float:right;margin-right:6px">清除已完成</button></h2>
+      <div id="taskList" class="muted">暂无任务</div>
+      <pre class="log" id="logBox"></pre>
+    </div>
+  </section>
+
+  <section id="tab-login">
+    <div class="card">
+      <h2>B 站 App 扫码登录</h2>
+      <div id="qrBox" style="text-align:center"><div class="hint">点下面的按钮获取二维码，用 B站 App 扫码确认</div></div>
+      <div class="row">
+        <button class="primary" id="qrBtn">获取二维码</button>
+        <span class="hint" id="qrMsg" style="margin:0"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>手动输入 Cookie</h2>
+      <textarea id="cookie" placeholder="SESSDATA=xxxx; bili_jct=xxxx; DedeUserID=xxxx"></textarea>
+      <div class="row">
+        <button class="primary" id="cookieBtn">使用 Cookie 登录</button>
+        <button class="ghost" id="logoutBtn">退出登录</button>
+      </div>
+      <div class="hint">浏览器登录 B站 → F12 → Network → 任意请求的 Cookie 整段粘贴即可。</div>
+    </div>
+  </section>
+
+  <section id="tab-settings">
+    <div class="card">
+      <h2>下载目录</h2>
+      <div class="field"><label>视频目录</label><input type="text" id="videoDir"></div>
+      <div class="field"><label>图文目录</label><input type="text" id="opusDir"></div>
+    </div>
+    <div class="card">
+      <h2>重命名规则（视频）</h2>
+      <input type="text" id="videoTpl">
+      <div class="hint">写 <b>/</b> 可建子文件夹，例如 <code>&lt;video_author&gt;/&lt;video_title&gt;-&lt;video_id&gt;.&lt;ext&gt;</code></div>
+      <div class="hint" id="videoHints"></div>
+    </div>
+    <div class="card">
+      <h2>重命名规则（图文）</h2>
+      <input type="text" id="opusTpl">
+      <div class="hint">写 <b>/</b> 可建子文件夹，例如 <code>&lt;opus_author&gt;/&lt;opus_title&gt;-&lt;opus_id&gt;-&lt;opus_order&gt;.&lt;ext&gt;</code></div>
+      <div class="hint" id="opusHints"></div>
+    </div>
+    <div class="card">
+      <h2>节流（防风控）</h2>
+      <div class="row">
+        <div class="field" style="flex:1"><label>接口间隔（秒）</label><input type="number" id="apiInt" step="0.1" min="0.5" max="10"></div>
+        <div class="field" style="flex:1"><label>翻页间隔（秒）</label><input type="number" id="scanInt" step="0.1" min="0.8" max="15"></div>
+        <div class="field" style="flex:1"><label>文件间隔（秒）</label><input type="number" id="fileInt" step="0.1" min="0" max="10"></div>
+      </div>
+      <div class="row"><button class="primary" id="saveSet">保存设置</button></div>
+    </div>
+    <div class="card">
+      <h2>定时追更</h2>
+      <div class="row">
+        <label class="hint" style="margin:0"><input type="checkbox" id="subsOn"> 开启自动扫描</label>
+        <div class="field" style="flex:1;margin:0"><label>默认间隔（分钟）</label><input type="number" id="subsInt" min="2"></div>
+        <div class="field" style="flex:1;margin:0"><label>两次扫描空档（秒）</label><input type="number" id="subsGap" min="30"></div>
+        <button class="ghost" id="subsSave">保存</button>
+      </div>
+      <div class="hint">扫描全部串行、单轮限量；建议间隔 ≥ 30 分钟。</div>
+      <div class="row">
+        <select id="subsKind" style="width:110px">
+          <option value="up" selected>UP 投稿</option>
+          <option value="fav">收藏夹</option>
+          <option value="bangumi">番剧影视</option>
+          <option value="toview">稍后再看</option>
+        </select>
+        <input type="text" id="subsMid" placeholder="UP 主 UID" style="flex:1;min-width:120px">
+        <button class="primary" id="subsAdd">添加</button>
+      </div>
+      <div id="subsList"></div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+<script src="vendor/qrcode.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
