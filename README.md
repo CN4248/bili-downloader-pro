@@ -50,7 +50,7 @@ BiliDL-PRO 是一个**自托管**的视频 / 图文下载器，把「解析链�
 
 ## 2. 与 BiliDL 的关系
 
-BiliDL-PRO 是 **[BiliDL（2.2.12）](https://github.com/CN4248/bili-downloader-pro)的升级版**，并非另起炉灶：B站 的全部能力、数据文件格式（`settings.json` / `queue.json` / `subs.json` / `cookie.txt`）与接口路径保持兼容，旧版的 `data/` 目录可以直接搬过来继续用。
+BiliDL-PRO 是 **[BiliDL（2.2.12）](https://github.com/CN4248/bili-downloader)的升级版**，并非另起炉灶：B站 的全部能力、数据文件格式（`settings.json` / `queue.json` / `subs.json` / `cookie.txt`）与接口路径保持兼容，旧版的 `data/` 目录可以直接搬过来继续用。
 
 | 能力 | BiliDL 2.2.12 | **BiliDL-PRO 2.4.1** |
 | --- | --- | --- |
